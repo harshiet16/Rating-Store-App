@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-// Name: 20–60 characters
-// Address: max 400 characters
-// Password: 8–16 characters, 1 uppercase, 1 special character
-// Email: valid format
+
 
 const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])/;
 

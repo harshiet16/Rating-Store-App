@@ -43,14 +43,12 @@ export const getStores = async (req: Request, res: Response) => {
         take: Number(limit),
         include: {
           owner: { select: { id: true, name: true } },
-          ratings: { select: { rating: true, userId: true } }, // Include all ratings to compute avg and current user's rating
+          ratings: { select: { rating: true, userId: true } },
         },
       }),
       prisma.store.count({ where }),
     ]);
 
-    // Format the response: calculate average rating
-    // Also include the current user's rating if the requester is a USER
     const currentUserId = req.user?.id;
 
     const formattedStores = stores.map((store) => {
@@ -64,7 +62,7 @@ export const getStores = async (req: Request, res: Response) => {
         if (userRating) myRating = userRating.rating;
       }
 
-      // Sort logic for custom computed field `rating` could be done in JS or advanced Prisma query
+
       return {
         id: store.id,
         name: store.name,
@@ -72,11 +70,10 @@ export const getStores = async (req: Request, res: Response) => {
         address: store.address,
         owner: store.owner,
         averageRating: Number(averageRating),
-        myRating, // Will be null for ADMIN or if user hasn't rated
+        myRating,
       };
     });
 
-    // Custom sorting if requested for `rating`
     if (sortField === 'rating') {
       formattedStores.sort((a, b) => {
         if (sortOrder === 'desc') return b.averageRating - a.averageRating;

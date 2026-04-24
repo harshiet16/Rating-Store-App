@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -15,14 +16,14 @@ enum Role {
 
 model User {
   id        String   @id @default(uuid())
-  name      String   @db.VarChar(60) // Min 20, Max 60
+  name      String   @db.VarChar(60)
   email     String   @unique
-  password  String   // Hashed
-  address   String   @db.VarChar(400) // Max 400
+  password  String
+  address   String   @db.VarChar(400)
   role      Role     @default(USER)
   
-  stores    Store[]  // For OWNER
-  ratings   Rating[] // For USER
+  stores    Store[]
+  ratings   Rating[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -56,5 +57,5 @@ model Rating {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  @@unique([userId, storeId]) // A user can rate a store only once
+  @@unique([userId, storeId])
 }

@@ -6,7 +6,6 @@ import { RatingSchema } from '../utils/validators';
 
 const router = Router();
 
-// Only NORMAL USER can submit or update ratings
 router.use(authenticate, authorize(['USER']));
 
 router.post('/', validate(RatingSchema), submitRating);

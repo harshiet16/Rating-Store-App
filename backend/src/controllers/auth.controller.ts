@@ -14,7 +14,6 @@ export const register = async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // If it is the first user, make them ADMIN
     const userCount = await prisma.user.count();
     const role = userCount === 0 ? 'ADMIN' : 'USER';
 
@@ -74,30 +73,4 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const updatePassword = async (req: Request, res: Response) => {
-  try {
-    const { oldPassword, newPassword } = req.body;
-    const userId = req.user!.id;
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Incorrect old password' });
-    }
-
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedNewPassword },
-    });
-
-    res.status(200).json({ success: true, message: 'Password updated successfully' });
-  } catch (error) {
-    console.error('Update password error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
-  }
-};

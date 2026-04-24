@@ -22,7 +22,7 @@ app.get('/api/v1/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
-// Default error handler
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ success: false, message: 'Internal Server Error' });

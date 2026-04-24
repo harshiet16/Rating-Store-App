@@ -7,13 +7,11 @@ export const submitRating = async (req: Request, res: Response) => {
     const { storeId, rating } = req.body;
     const userId = req.user!.id;
 
-    // Check if store exists
     const store = await prisma.store.findUnique({ where: { id: storeId } });
     if (!store) {
       return res.status(404).json({ success: false, message: 'Store not found' });
     }
 
-    // Check if rating already exists using Service
     const existingRating = await ratingService.checkExistingRating(userId, storeId);
 
     if (existingRating) {

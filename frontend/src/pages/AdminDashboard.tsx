@@ -5,28 +5,27 @@ import { Users, Storefront, Star, Plus } from '@phosphor-icons/react';
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'stores' | 'add-user' | 'add-store'>('users');
   
-  // Data States
   const [users, setUsers] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [stats, setStats] = useState({ users: 0, stores: 0, ratings: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Filter States for Users
   const [userFilters, setUserFilters] = useState({ name: '', email: '', address: '', role: '' });
-
-  // Form States
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', address: '', role: 'USER' });
   const [newStore, setNewStore] = useState({ name: '', email: '', address: '', ownerId: '' });
 
+  const [userSort, setUserSort] = useState({ field: 'name', order: 'asc' });
+  const [storeSort, setStoreSort] = useState({ field: 'name', order: 'asc' });
+
   const fetchData = async () => {
-    setLoading(true);
     try {
-      // Build query string for users
       const userQ = new URLSearchParams();
       if (userFilters.name) userQ.append('name', userFilters.name);
       if (userFilters.email) userQ.append('email', userFilters.email);
       if (userFilters.address) userQ.append('address', userFilters.address);
       if (userFilters.role) userQ.append('role', userFilters.role);
+      userQ.append('sortField', userSort.field);
+      userQ.append('sortOrder', userSort.order);
 
       const [usersRes, storesRes] = await Promise.all([
         api.get(`/users?${userQ.toString()}`),
@@ -34,19 +33,19 @@ const AdminDashboard: React.FC = () => {
       ]);
 
       setUsers(usersRes.data.data);
-      setStores(storesRes.data.data);
       
-      // Calculate ratings stats roughly (in a real app, backend should provide a stats endpoint)
-      let totalRatings = 0;
-      storesRes.data.data.forEach((s: any) => {
-        // If the backend doesn't return total count, we might need a dedicated endpoint
-        // For now, assume we just want to show something or we need a real stats endpoint
+      const sortedStores = [...storesRes.data.data].sort((a, b) => {
+        const field = storeSort.field as keyof any;
+        if (a[field] < b[field]) return storeSort.order === 'asc' ? -1 : 1;
+        if (a[field] > b[field]) return storeSort.order === 'asc' ? 1 : -1;
+        return 0;
       });
-
+      setStores(sortedStores);
+      
       setStats({
         users: usersRes.data.meta.total,
         stores: storesRes.data.meta.total,
-        ratings: 0 // Placeholder, we should ideally have a stats endpoint
+        ratings: 0 
       });
       
     } catch (error) {
@@ -58,18 +57,32 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [userFilters]);
+  }, [userFilters, userSort, storeSort]);
+
+  const toggleUserSort = (field: string) => {
+    setUserSort(prev => ({
+      field,
+      order: prev.field === field && prev.order === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const toggleStoreSort = (field: string) => {
+    setStoreSort(prev => ({
+      field,
+      order: prev.field === field && prev.order === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await api.post('/users', newUser);
-      alert('User added successfully');
+      alert('User created successfully');
       setNewUser({ name: '', email: '', password: '', address: '', role: 'USER' });
       setActiveTab('users');
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add user');
+      alert(err.response?.data?.message || 'Failed to create user');
     }
   };
 
@@ -77,17 +90,56 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
     try {
       await api.post('/stores', newStore);
-      alert('Store added successfully');
+      alert('Store created successfully');
       setNewStore({ name: '', email: '', address: '', ownerId: '' });
       setActiveTab('stores');
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add store');
+      alert(err.response?.data?.message || 'Failed to create store');
+    }
+  };
+
+  const [showUserDetails, setShowUserDetails] = useState<any | null>(null);
+
+  const fetchUserDetails = async (id: string) => {
+    try {
+      const res = await api.get(`/users/${id}`);
+      setShowUserDetails(res.data.data);
+    } catch (err) {
+      alert('Failed to fetch user details');
     }
   };
 
   return (
     <div className="app-container">
+      {showUserDetails && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="glass" style={{ padding: '2.5rem', width: '100%', maxWidth: '500px', position: 'relative' }}>
+            <button onClick={() => setShowUserDetails(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--error-color)', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+            <h3 style={{ marginBottom: '1.5rem' }}>User Profile Details</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div><strong>Name:</strong> {showUserDetails.name}</div>
+              <div><strong>Email:</strong> {showUserDetails.email}</div>
+              <div><strong>Address:</strong> {showUserDetails.address}</div>
+              <div><strong>Role:</strong> {showUserDetails.role}</div>
+              {showUserDetails.role === 'STORE_OWNER' && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(251, 191, 36, 0.1)', borderRadius: 'var(--radius)', border: '1px solid rgba(251, 191, 36, 0.3)' }}>
+                  <h4 style={{ color: '#fbbf24', margin: '0 0 0.5rem 0' }}>Store Ownership</h4>
+                  {showUserDetails.stores?.length > 0 ? (
+                    showUserDetails.stores.map((s: any) => (
+                      <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{s.name}</span>
+                        <span style={{ fontWeight: 'bold', color: '#fbbf24' }}><Star weight="fill" /> {s.averageRating}</span>
+                      </div>
+                    ))
+                  ) : <span>No stores registered.</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: '2rem' }}>
         <h2>System Administrator</h2>
         <p style={{ color: 'var(--text-secondary)' }}>Manage the platform and monitor activity</p>
@@ -138,7 +190,17 @@ const AdminDashboard: React.FC = () => {
             
             <div className="table-container">
               <table>
-                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Address</th><th>Role</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th onClick={() => toggleUserSort('id')} style={{ cursor: 'pointer' }}>ID {userSort.field === 'id' && (userSort.order === 'asc' ? '↑' : '↓')}</th>
+                    <th onClick={() => toggleUserSort('name')} style={{ cursor: 'pointer' }}>Name {userSort.field === 'name' && (userSort.order === 'asc' ? '↑' : '↓')}</th>
+                    <th onClick={() => toggleUserSort('email')} style={{ cursor: 'pointer' }}>Email {userSort.field === 'email' && (userSort.order === 'asc' ? '↑' : '↓')}</th>
+                    <th>Address</th>
+                    <th>Role</th>
+                    <th>Rating</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {users.map(u => (
                     <tr key={u.id}>
@@ -147,6 +209,16 @@ const AdminDashboard: React.FC = () => {
                       <td>{u.email}</td>
                       <td>{u.address}</td>
                       <td>{u.role}</td>
+                      <td style={{ color: '#fbbf24' }}>
+                        {u.role === 'STORE_OWNER' ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                            <Star weight="fill" /> {u.averageRating || '0.0'}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <button className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => fetchUserDetails(u.id)}>View</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -158,7 +230,15 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'stores' && (
           <div className="table-container">
             <table>
-              <thead><tr><th>Name</th><th>Email</th><th>Address</th><th>Owner</th><th>Rating</th></tr></thead>
+              <thead>
+                <tr>
+                  <th onClick={() => toggleStoreSort('name')} style={{ cursor: 'pointer' }}>Name {storeSort.field === 'name' && (storeSort.order === 'asc' ? '↑' : '↓')}</th>
+                  <th onClick={() => toggleStoreSort('email')} style={{ cursor: 'pointer' }}>Email {storeSort.field === 'email' && (storeSort.order === 'asc' ? '↑' : '↓')}</th>
+                  <th>Address</th>
+                  <th>Owner</th>
+                  <th onClick={() => toggleStoreSort('averageRating')} style={{ cursor: 'pointer' }}>Rating {storeSort.field === 'averageRating' && (storeSort.order === 'asc' ? '↑' : '↓')}</th>
+                </tr>
+              </thead>
               <tbody>
                 {stores.map(s => (
                   <tr key={s.id}>

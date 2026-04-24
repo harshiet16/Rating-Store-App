@@ -7,7 +7,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
 import StoreOwnerDashboard from './pages/StoreOwnerDashboard';
 
-// Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -20,7 +19,6 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Redirect to their respective dashboard if they lack permissions
     if (user.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'USER') return <Navigate to="/user/dashboard" replace />;
     if (user.role === 'STORE_OWNER') return <Navigate to="/owner/dashboard" replace />;

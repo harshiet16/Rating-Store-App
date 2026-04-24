@@ -27,14 +27,47 @@ export const getUsers = async (req: Request, res: Response) => {
         orderBy,
         skip,
         take: Number(limit),
-        select: { id: true, name: true, email: true, address: true, role: true, createdAt: true },
+        select: { 
+          id: true, 
+          name: true, 
+          email: true, 
+          address: true, 
+          role: true, 
+          createdAt: true,
+          stores: {
+            select: {
+              ratings: {
+                select: { rating: true }
+              }
+            }
+          }
+        },
       }),
       prisma.user.count({ where }),
     ]);
 
+    const usersWithRatings = users.map(u => {
+      if (u.role === 'STORE_OWNER' && u.stores.length > 0) {
+        let totalRating = 0;
+        let ratingCount = 0;
+        u.stores.forEach(s => {
+          s.ratings.forEach(r => {
+            totalRating += r.rating;
+            ratingCount++;
+          });
+        });
+        return {
+          ...u,
+          stores: undefined,
+          averageRating: ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : 'N/A'
+        };
+      }
+      return { ...u, stores: undefined };
+    });
+
     res.status(200).json({
       success: true,
-      data: users,
+      data: usersWithRatings,
       meta: {
         total,
         page: Number(page),
@@ -92,7 +125,6 @@ export const getUserDetails = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // If user is STORE OWNER, calculate average rating for their stores
     if (user.role === 'STORE_OWNER') {
       const storesWithRating = await Promise.all(
         user.stores.map(async (store) => {
@@ -112,6 +144,33 @@ export const getUserDetails = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: user });
   } catch (error) {
     console.error('Get user details error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+export const updatePassword = async (req: Request, res: Response) => {
+  try {
+    const { id } = (req as any).user;
+    const { oldPassword, newPassword } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Incorrect current password' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword }
+    });
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Update password error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
