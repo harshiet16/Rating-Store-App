@@ -1,18 +1,18 @@
-# Store Rating Platform
+# Store Rating App
 
-A full-stack web application allowing users to submit ratings for stores. Built with modern, clean architecture.
+Quickly find and rate stores. Built for speed and simplicity.
 
-## Tech Stack
-- **Backend**: Node.js, Express, TypeScript, Prisma, PostgreSQL, Zod, JWT, bcrypt
-- **Frontend**: React, Vite, TypeScript, Vanilla CSS (Glassmorphism), Axios, Phosphor Icons
+## Tech
+- **Back**: Node, Express, TS, Prisma/PostgreSQL, Zod, JWT
+- **Front**: React, Vite, TS, CSS (Glassmorphism), Axios
 
 ## Features
-- **3 Roles**: System Administrator, Normal User, Store Owner.
-- **Admin**: Manage users and stores, view statistics, global dashboard.
-- **Normal User**: Discover stores, search by name/address, rate stores (1-5 stars).
-- **Store Owner**: View their stores' performance and who rated them.
-- **Validations**: Strict backend Zod validations & frontend HTML5 validations (e.g. 20-60 char Name limits).
-- **Clean Architecture**: Backend separated into Routes, Controllers, Services, Middlewares, Schemas.
+- **3 Roles**: Admin, User, Store Owner.
+- **Admin**: Full control over users and stores.
+- **Users**: Search, find, and rate.
+- **Owners**: Performance metrics and feedback tracking.
+- **Validation**: Strict character limits on both ends (e.g. 20-60 char names).
+- **Structure**: Clean separation of routes, controllers, and services.
 
 ## Prerequisites
 - Node.js (v18+)
